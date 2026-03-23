@@ -9,7 +9,9 @@ import net.minecraft.client.render.*;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.chunk.WorldChunk;
 import org.joml.Matrix4f;
 
 import java.util.ArrayList;
@@ -22,15 +24,23 @@ public class ChestEspRenderer {
         MinecraftClient mc = MinecraftClient.getInstance();
         if (mc.world == null || mc.player == null) return;
 
-        int radiusBlocks = ModConfig.chestEspRadius * 16;
         BlockPos origin = mc.player.getBlockPos();
+        ChunkPos centerChunk = new ChunkPos(origin);
+        int chunkRadius = Math.min(ModConfig.chestEspRadius, 16);
         List<BlockEntity> found = new ArrayList<>();
 
-        for (BlockEntity be : mc.world.getBlockEntities()) {
-            if (!(be instanceof ChestBlockEntity)
-             && !(be instanceof TrappedChestBlockEntity)
-             && !(be instanceof EnderChestBlockEntity)) continue;
-            if (be.getPos().getManhattanDistance(origin) <= radiusBlocks) found.add(be);
+        // Iterate loaded chunks instead of world.getBlockEntities()
+        for (int cx = centerChunk.x - chunkRadius; cx <= centerChunk.x + chunkRadius; cx++) {
+            for (int cz = centerChunk.z - chunkRadius; cz <= centerChunk.z + chunkRadius; cz++) {
+                WorldChunk chunk = mc.world.getChunkManager().getWorldChunk(cx, cz);
+                if (chunk == null) continue;
+                for (BlockEntity be : chunk.getBlockEntities().values()) {
+                    if (!(be instanceof ChestBlockEntity)
+                     && !(be instanceof TrappedChestBlockEntity)
+                     && !(be instanceof EnderChestBlockEntity)) continue;
+                    found.add(be);
+                }
+            }
         }
 
         if (found.isEmpty()) return;
