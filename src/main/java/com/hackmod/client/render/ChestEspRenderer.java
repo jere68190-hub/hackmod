@@ -26,8 +26,7 @@ public class ChestEspRenderer {
         BlockPos origin = mc.player.getBlockPos();
         List<BlockEntity> found = new ArrayList<>();
 
-        // Use iterateBlockEntities() for 1.21.4 compatibility
-        for (BlockEntity be : mc.world.blockEntities) {
+        for (BlockEntity be : mc.world.getBlockEntities()) {
             if (!(be instanceof ChestBlockEntity)
              && !(be instanceof TrappedChestBlockEntity)
              && !(be instanceof EnderChestBlockEntity)) continue;
@@ -55,16 +54,16 @@ public class ChestEspRenderer {
             float cg = isEnder ? 0.0f : g;
             float cb = isEnder ? 1.0f : b;
             BlockPos pos = be.getPos();
-            double dx = pos.getX() - cam.x, dy = pos.getY() - cam.y, dz = pos.getZ() - cam.z;
-            Box box = new Box(dx+.05, dy+.05, dz+.05, dx+.95, dy+.95, dz+.95);
+            double dx = pos.getX()-cam.x, dy = pos.getY()-cam.y, dz = pos.getZ()-cam.z;
+            Box box = new Box(dx+.05,dy+.05,dz+.05,dx+.95,dy+.95,dz+.95);
             ms.push();
             Matrix4f m = ms.peek().getPositionMatrix();
             BufferBuilder buf = tess.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR);
-            fillBox(buf, m, box, cr, cg, cb, 0.10f);
+            fillBox(buf,m,box,cr,cg,cb,0.10f);
             BufferRenderer.drawWithGlobalProgram(buf.end());
             RenderSystem.lineWidth(1.8f);
             buf = tess.begin(VertexFormat.DrawMode.DEBUG_LINES, VertexFormats.POSITION_COLOR);
-            wireBox(buf, m, box, cr, cg, cb, 0.9f);
+            wireBox(buf,m,box,cr,cg,cb,0.9f);
             BufferRenderer.drawWithGlobalProgram(buf.end());
             ms.pop();
         }
@@ -75,29 +74,22 @@ public class ChestEspRenderer {
         RenderSystem.lineWidth(1.0f);
     }
 
-    public static void fillBox(BufferBuilder b, Matrix4f m, Box bx, float r, float g, float bv, float a) {
+    public static void fillBox(BufferBuilder b,Matrix4f m,Box bx,float r,float g,float bv,float a){
         float x0=(float)bx.minX,y0=(float)bx.minY,z0=(float)bx.minZ,x1=(float)bx.maxX,y1=(float)bx.maxY,z1=(float)bx.maxZ;
-        q(b,m,x0,y0,z0,x1,y0,z0,x1,y0,z1,x0,y0,z1,r,g,bv,a);
-        q(b,m,x0,y1,z0,x0,y1,z1,x1,y1,z1,x1,y1,z0,r,g,bv,a);
-        q(b,m,x0,y0,z0,x0,y1,z0,x1,y1,z0,x1,y0,z0,r,g,bv,a);
-        q(b,m,x0,y0,z1,x1,y0,z1,x1,y1,z1,x0,y1,z1,r,g,bv,a);
-        q(b,m,x0,y0,z0,x0,y0,z1,x0,y1,z1,x0,y1,z0,r,g,bv,a);
-        q(b,m,x1,y0,z0,x1,y1,z0,x1,y1,z1,x1,y0,z1,r,g,bv,a);
+        q(b,m,x0,y0,z0,x1,y0,z0,x1,y0,z1,x0,y0,z1,r,g,bv,a);q(b,m,x0,y1,z0,x0,y1,z1,x1,y1,z1,x1,y1,z0,r,g,bv,a);
+        q(b,m,x0,y0,z0,x0,y1,z0,x1,y1,z0,x1,y0,z0,r,g,bv,a);q(b,m,x0,y0,z1,x1,y0,z1,x1,y1,z1,x0,y1,z1,r,g,bv,a);
+        q(b,m,x0,y0,z0,x0,y0,z1,x0,y1,z1,x0,y1,z0,r,g,bv,a);q(b,m,x1,y0,z0,x1,y1,z0,x1,y1,z1,x1,y0,z1,r,g,bv,a);
     }
 
-    public static void wireBox(BufferBuilder b, Matrix4f m, Box bx, float r, float g, float bv, float a) {
+    public static void wireBox(BufferBuilder b,Matrix4f m,Box bx,float r,float g,float bv,float a){
         float x0=(float)bx.minX,y0=(float)bx.minY,z0=(float)bx.minZ,x1=(float)bx.maxX,y1=(float)bx.maxY,z1=(float)bx.maxZ;
-        ln(b,m,x0,y0,z0,x1,y0,z0,r,g,bv,a);ln(b,m,x1,y0,z0,x1,y0,z1,r,g,bv,a);
-        ln(b,m,x1,y0,z1,x0,y0,z1,r,g,bv,a);ln(b,m,x0,y0,z1,x0,y0,z0,r,g,bv,a);
-        ln(b,m,x0,y1,z0,x1,y1,z0,r,g,bv,a);ln(b,m,x1,y1,z0,x1,y1,z1,r,g,bv,a);
-        ln(b,m,x1,y1,z1,x0,y1,z1,r,g,bv,a);ln(b,m,x0,y1,z1,x0,y1,z0,r,g,bv,a);
-        ln(b,m,x0,y0,z0,x0,y1,z0,r,g,bv,a);ln(b,m,x1,y0,z0,x1,y1,z0,r,g,bv,a);
-        ln(b,m,x1,y0,z1,x1,y1,z1,r,g,bv,a);ln(b,m,x0,y0,z1,x0,y1,z1,r,g,bv,a);
+        ln(b,m,x0,y0,z0,x1,y0,z0,r,g,bv,a);ln(b,m,x1,y0,z0,x1,y0,z1,r,g,bv,a);ln(b,m,x1,y0,z1,x0,y0,z1,r,g,bv,a);ln(b,m,x0,y0,z1,x0,y0,z0,r,g,bv,a);
+        ln(b,m,x0,y1,z0,x1,y1,z0,r,g,bv,a);ln(b,m,x1,y1,z0,x1,y1,z1,r,g,bv,a);ln(b,m,x1,y1,z1,x0,y1,z1,r,g,bv,a);ln(b,m,x0,y1,z1,x0,y1,z0,r,g,bv,a);
+        ln(b,m,x0,y0,z0,x0,y1,z0,r,g,bv,a);ln(b,m,x1,y0,z0,x1,y1,z0,r,g,bv,a);ln(b,m,x1,y0,z1,x1,y1,z1,r,g,bv,a);ln(b,m,x0,y0,z1,x0,y1,z1,r,g,bv,a);
     }
 
     private static void q(BufferBuilder b,Matrix4f m,float x0,float y0,float z0,float x1,float y1,float z1,float x2,float y2,float z2,float x3,float y3,float z3,float r,float g,float bv,float a){
-        b.vertex(m,x0,y0,z0).color(r,g,bv,a);b.vertex(m,x1,y1,z1).color(r,g,bv,a);
-        b.vertex(m,x2,y2,z2).color(r,g,bv,a);b.vertex(m,x3,y3,z3).color(r,g,bv,a);
+        b.vertex(m,x0,y0,z0).color(r,g,bv,a);b.vertex(m,x1,y1,z1).color(r,g,bv,a);b.vertex(m,x2,y2,z2).color(r,g,bv,a);b.vertex(m,x3,y3,z3).color(r,g,bv,a);
     }
     private static void ln(BufferBuilder b,Matrix4f m,float x0,float y0,float z0,float x1,float y1,float z1,float r,float g,float bv,float a){
         b.vertex(m,x0,y0,z0).color(r,g,bv,a);b.vertex(m,x1,y1,z1).color(r,g,bv,a);
