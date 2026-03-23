@@ -30,11 +30,9 @@ public class HackWebServer {
             httpThread = new HttpThread(PORT);
             httpThread.setDaemon(true);
             httpThread.start();
-
             wsServer = new HackWsServer(PORT + 1);
             wsServer.setReuseAddr(true);
             wsServer.start();
-
             scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
                 Thread t = new Thread(r, "hackmod-push");
                 t.setDaemon(true);
@@ -55,8 +53,6 @@ public class HackWebServer {
         } catch (Exception ignored) {}
     }
 
-    // ── State push ────────────────────────────────────────────────────────────
-
     private void push() {
         if (wsServer == null) return;
         Collection<WebSocket> conns = wsServer.getConnections();
@@ -76,8 +72,10 @@ public class HackWebServer {
             facing=mc.player.getHorizontalFacing().getName().toUpperCase();
             if (mc.world != null) {
                 dim = mc.world.getRegistryKey().getValue().getPath();
-                var bk = mc.world.getBiome(mc.player.getBlockPos()).getKey();
-                if (bk.isPresent()) biome = bk.get().getValue().getPath().replace("_"," ");
+                try {
+                    var bk = mc.world.getBiome(mc.player.getBlockPos()).getKey();
+                    if (bk.isPresent()) biome = bk.get().getValue().getPath().replace("_"," ");
+                } catch (Exception ignored) {}
             }
             if (mc.getCurrentServerEntry() != null) server = mc.getCurrentServerEntry().address;
             if (mc.getNetworkHandler() != null) {
@@ -86,9 +84,8 @@ public class HackWebServer {
             }
         }
 
-        // Seed & structures
-        String seedStr  = WorldSeedManager.seedKnown ? String.valueOf(WorldSeedManager.cachedSeed) : "unknown";
-        String structs  = buildStructuresJson(mc);
+        String seedStr = WorldSeedManager.seedKnown ? String.valueOf(WorldSeedManager.cachedSeed) : "unknown";
+        String structs = buildStructuresJson(mc);
 
         return String.format(
             "{\"type\":\"state\"," +
@@ -107,23 +104,18 @@ public class HackWebServer {
             ModConfig.clockHud.get(), ModConfig.armorAlert.get(),
             ModConfig.zoomEnabled.get(), ModConfig.customFovEnabled, ModConfig.seedTracker.get(),
             ModConfig.chestEspRadius, ModConfig.customFov, ModConfig.structureScanRadius,
-            x, y, z, facing, dim, biome, fps, ping, server,
-            seedStr, structs
+            x,y,z,facing,dim,biome,fps,ping,server,seedStr,structs
         );
     }
 
     private String buildStructuresJson(MinecraftClient mc) {
         if (!ModConfig.seedTracker.get() || WorldSeedManager.nearbyStructures.isEmpty()) return "[]";
-
         var playerPos = mc != null && mc.player != null ? mc.player.getBlockPos() : null;
-
         return "[" + WorldSeedManager.nearbyStructures.stream()
             .map(s -> {
                 String dir = playerPos != null ? s.direction(playerPos) : "?";
-                return String.format(
-                    "{\"name\":\"%s\",\"x\":%d,\"z\":%d,\"dist\":%d,\"dir\":\"%s\"}",
-                    s.name(), s.pos().getX(), s.pos().getZ(), s.distanceBlocks(), dir
-                );
+                return String.format("{\"name\":\"%s\",\"x\":%d,\"z\":%d,\"dist\":%d,\"dir\":\"%s\"}",
+                    s.name(), s.pos().getX(), s.pos().getZ(), s.distanceBlocks(), dir);
             })
             .collect(Collectors.joining(",")) + "]";
     }
@@ -134,7 +126,6 @@ public class HackWebServer {
         HackWsServer(int port) throws UnknownHostException {
             super(new InetSocketAddress("localhost", port));
         }
-
         @Override public void onOpen(WebSocket c, ClientHandshake h) {}
         @Override public void onClose(WebSocket c, int code, String r, boolean remote) {}
         @Override public void onError(WebSocket c, Exception e) {}
@@ -155,42 +146,43 @@ public class HackWebServer {
             }
         }
 
+        // Use get/set instead of updateAndGet for broader Java compatibility
         private boolean toggleFeature(String f) {
-            return switch (f) {
-                case "chestEsp"          -> ModConfig.chestEsp.updateAndGet(v -> !v);
-                case "playerEsp"         -> ModConfig.playerEsp.updateAndGet(v -> !v);
-                case "fullbright"        -> ModConfig.fullbright.updateAndGet(v -> !v);
-                case "noFall"            -> ModConfig.noFall.updateAndGet(v -> !v);
-                case "autoSprint"        -> ModConfig.autoSprint.updateAndGet(v -> !v);
-                case "coordsHud"         -> ModConfig.coordsHud.updateAndGet(v -> !v);
-                case "armorHud"          -> ModConfig.armorHud.updateAndGet(v -> !v);
-                case "biomeHud"          -> ModConfig.biomeHud.updateAndGet(v -> !v);
-                case "clockHud"          -> ModConfig.clockHud.updateAndGet(v -> !v);
-                case "armorAlert"        -> ModConfig.armorAlert.updateAndGet(v -> !v);
-                case "zoomEnabled"       -> ModConfig.zoomEnabled.updateAndGet(v -> !v);
-                case "customFovEnabled"  -> { ModConfig.customFovEnabled = !ModConfig.customFovEnabled; yield ModConfig.customFovEnabled; }
-                case "seedTracker"       -> ModConfig.seedTracker.updateAndGet(v -> !v);
-                default -> false;
-            };
+            switch (f) {
+                case "chestEsp":         { boolean v = !ModConfig.chestEsp.get();        ModConfig.chestEsp.set(v);        return v; }
+                case "playerEsp":        { boolean v = !ModConfig.playerEsp.get();       ModConfig.playerEsp.set(v);       return v; }
+                case "fullbright":       { boolean v = !ModConfig.fullbright.get();      ModConfig.fullbright.set(v);      return v; }
+                case "noFall":           { boolean v = !ModConfig.noFall.get();          ModConfig.noFall.set(v);          return v; }
+                case "autoSprint":       { boolean v = !ModConfig.autoSprint.get();      ModConfig.autoSprint.set(v);      return v; }
+                case "coordsHud":        { boolean v = !ModConfig.coordsHud.get();       ModConfig.coordsHud.set(v);       return v; }
+                case "armorHud":         { boolean v = !ModConfig.armorHud.get();        ModConfig.armorHud.set(v);        return v; }
+                case "biomeHud":         { boolean v = !ModConfig.biomeHud.get();        ModConfig.biomeHud.set(v);        return v; }
+                case "clockHud":         { boolean v = !ModConfig.clockHud.get();        ModConfig.clockHud.set(v);        return v; }
+                case "armorAlert":       { boolean v = !ModConfig.armorAlert.get();      ModConfig.armorAlert.set(v);      return v; }
+                case "zoomEnabled":      { boolean v = !ModConfig.zoomEnabled.get();     ModConfig.zoomEnabled.set(v);     return v; }
+                case "seedTracker":      { boolean v = !ModConfig.seedTracker.get();     ModConfig.seedTracker.set(v);     return v; }
+                case "customFovEnabled": { boolean v = !ModConfig.customFovEnabled;      ModConfig.customFovEnabled = v;   return v; }
+                default: return false;
+            }
         }
 
         private void setFeature(String f, int v) {
             switch (f) {
-                case "chestEspRadius"       -> ModConfig.chestEspRadius = Math.max(1, Math.min(32, v));
-                case "customFov"            -> ModConfig.customFov = Math.max(30, Math.min(120, v));
-                case "structureScanRadius"  -> ModConfig.structureScanRadius = Math.max(10, Math.min(200, v));
+                case "chestEspRadius":      ModConfig.chestEspRadius = Math.max(1, Math.min(32, v));   break;
+                case "customFov":           ModConfig.customFov = Math.max(30, Math.min(120, v));       break;
+                case "structureScanRadius": ModConfig.structureScanRadius = Math.max(10, Math.min(200, v)); break;
             }
         }
 
         private String str(String j, String k) {
-            String s = "\"" + k + "\":\""; int i = j.indexOf(s); if (i < 0) return "";
-            i += s.length(); int e = j.indexOf('"', i); return e < 0 ? "" : j.substring(i, e);
+            String s = "\""+k+"\":\""; int i = j.indexOf(s); if(i<0) return "";
+            i += s.length(); int e = j.indexOf('"',i); return e<0?"":j.substring(i,e);
         }
         private int num(String j, String k) {
-            String s = "\"" + k + "\":"; int i = j.indexOf(s); if (i < 0) return 0;
+            String s = "\""+k+"\":"; int i = j.indexOf(s); if(i<0) return 0;
             i += s.length(); int e = i;
-            while (e < j.length() && (Character.isDigit(j.charAt(e)) || j.charAt(e) == '-')) e++;
-            try { return Integer.parseInt(j.substring(i, e)); } catch (Exception ex) { return 0; }
+            while(e<j.length()&&(Character.isDigit(j.charAt(e))||j.charAt(e)=='-'))e++;
+            try{return Integer.parseInt(j.substring(i,e));}catch(Exception ex){return 0;}
         }
     }
 
@@ -207,32 +199,22 @@ public class HackWebServer {
                     Socket c = ss.accept();
                     Thread t = new Thread(() -> handle(c), "hackmod-req");
                     t.setDaemon(true); t.start();
-                } catch (IOException e) { if (!isInterrupted()) LOG.warn("[HTTP] {}", e.getMessage()); }
+                } catch (IOException e) { if(!isInterrupted()) LOG.warn("[HTTP] {}",e.getMessage()); }
             }
         }
 
         private void handle(Socket c) {
-            try (c;
-                 BufferedReader in  = new BufferedReader(new InputStreamReader(c.getInputStream()));
-                 OutputStream   out = c.getOutputStream()) {
-
-                String req = in.readLine(); if (req == null) return;
+            try (c; BufferedReader in = new BufferedReader(new InputStreamReader(c.getInputStream())); OutputStream out = c.getOutputStream()) {
+                String req = in.readLine(); if(req==null) return;
                 String[] parts = req.split(" ");
-                String path = parts.length >= 2 ? parts[1].split("\\?")[0] : "/";
-
-                String res = switch (path) {
-                    case "/", "/index.html" -> "/assets/hackmod/web/index.html";
-                    default -> null;
-                };
-
-                if (res == null) { out.write("HTTP/1.1 404 Not Found\r\nContent-Length:0\r\n\r\n".getBytes()); return; }
-
-                try (InputStream s = HackWebServer.class.getResourceAsStream(res)) {
-                    if (s == null) { out.write("HTTP/1.1 404 Not Found\r\nContent-Length:0\r\n\r\n".getBytes()); return; }
+                String path = parts.length>=2 ? parts[1].split("\\?")[0] : "/";
+                String res = (path.equals("/") || path.equals("/index.html")) ? "/assets/hackmod/web/index.html" : null;
+                if(res==null){out.write("HTTP/1.1 404 Not Found\r\nContent-Length:0\r\n\r\n".getBytes());return;}
+                try(InputStream s = HackWebServer.class.getResourceAsStream(res)){
+                    if(s==null){out.write("HTTP/1.1 404 Not Found\r\nContent-Length:0\r\n\r\n".getBytes());return;}
                     byte[] body = s.readAllBytes();
-                    String hdr = "HTTP/1.1 200 OK\r\nContent-Type:text/html;charset=utf-8\r\nContent-Length:" + body.length + "\r\nConnection:close\r\n\r\n";
-                    out.write(hdr.getBytes(StandardCharsets.UTF_8));
-                    out.write(body);
+                    String hdr = "HTTP/1.1 200 OK\r\nContent-Type:text/html;charset=utf-8\r\nContent-Length:"+body.length+"\r\nConnection:close\r\n\r\n";
+                    out.write(hdr.getBytes(StandardCharsets.UTF_8)); out.write(body);
                 }
             } catch (IOException ignored) {}
         }
