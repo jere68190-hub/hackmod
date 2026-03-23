@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HACKMOD // SYS</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+:root {
+  --green:#00ff41;--gdim:#007a20;--gdark:#003a10;
+  --bg:#020d05;--panel:#05130a;--border:#00cc33;
+  --red:#ff3c00;--yellow:#ffcc00;--cyan:#00ffcc;--purple:#9900ff;--blue:#0088ff;--orange:#ff7700;
+  --text:#ccffcc;--tdim:#557755;
+  --font:'Share Tech Mono',monospace;--display:'Orbitron',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-family:var(--font);overflow:hidden;cursor:crosshair;}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.07) 2px,rgba(0,0,0,.07) 4px);pointer-events:none;z-index:9999;}
+body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.65) 100%);pointer-events:none;z-index:9998;}
+
+/* Layout */
+#app{display:flex;flex-direction:column;height:100vh;padding:8px;gap:6px;}
+
+/* Header */
+#hdr{border:1px solid var(--border);background:linear-gradient(135deg,#001a08,#030d05);padding:8px 14px;display:flex;align-items:center;justify-content:space-between;position:relative;overflow:hidden;flex-shrink:0;}
+#hdr::before{content:'';position:absolute;top:0;left:-100%;width:50%;height:100%;background:linear-gradient(90deg,transparent,rgba(0,255,65,.04),transparent);animation:sweep 5s linear infinite;}
+@keyframes sweep{to{left:150%;}}
+.htitle{font-family:var(--display);font-size:14px;font-weight:900;color:var(--green);letter-spacing:4px;text-shadow:0 0 10px var(--green);}
+.hsub{font-size:9px;color:var(--gdim);letter-spacing:2px;margin-top:2px;}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:blink 1s step-end infinite;display:inline-block;margin-right:5px;}
+@keyframes blink{50%{opacity:0;}}
+.badge{font-size:9px;padding:2px 7px;border:1px solid;letter-spacing:1px;}
+.badge.on{color:var(--green);border-color:var(--green);background:rgba(0,255,65,.08);}
+.badge.off{color:var(--red);border-color:var(--red);background:rgba(255,60,0,.08);animation:blink .5s step-end infinite;}
+
+/* Stats */
+#stats{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;flex-shrink:0;}
+.sb{border:1px solid #1a3a1a;background:var(--panel);padding:5px 8px;position:relative;overflow:hidden;}
+.sb::before{content:'';position:absolute;top:0;left:0;width:2px;height:100%;background:var(--gdim);}
+.sl{font-size:8px;color:var(--tdim);letter-spacing:2px;margin-bottom:1px;}
+.sv{font-size:13px;color:var(--green);font-family:var(--display);font-weight:700;text-shadow:0 0 6px var(--gdim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sv.warn{color:var(--yellow)}.sv.alert{color:var(--red)}
+
+/* Tabs */
+#tabs{display:flex;gap:4px;flex-shrink:0;}
+.tab{font-family:var(--display);font-size:9px;letter-spacing:2px;padding:5px 12px;border:1px solid #1a3a1a;background:var(--panel);color:var(--tdim);cursor:pointer;transition:all .2s;}
+.tab:hover{border-color:var(--gdim);color:var(--text);}
+.tab.active{border-color:var(--green);color:var(--green);background:#001a08;box-shadow:0 0 8px rgba(0,255,65,.15);}
+
+/* Pages */
+.page{display:none;flex:1;min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--gdim) transparent;}
+.page.active{display:grid;grid-template-columns:1fr 1fr;gap:6px;align-content:start;}
+.page.active.single-col{grid-template-columns:1fr;}
+.page.active.seed-layout{display:flex;flex-direction:column;gap:6px;}
+
+/* Module cards */
+.mod{border:1px solid #0f2a0f;background:var(--panel);cursor:pointer;position:relative;overflow:hidden;transition:border-color .2s,background .2s;display:flex;flex-direction:column;}
+.mod:hover{background:#071208;}
+.mod.on{border-color:var(--green);background:#001a09;box-shadow:0 0 10px rgba(0,255,65,.1),inset 0 0 10px rgba(0,255,65,.03);}
+.mod.on .mbar{background:var(--green);box-shadow:0 0 5px var(--green);}
+.mod.on .mname{color:#fff;}.mod.on .mstatus{color:var(--green);}
+.mod.on .mtog{background:var(--green);box-shadow:0 0 7px var(--green);}
+.mod.on .mtog::after{transform:translateX(18px);}
+.mod[data-c="red"].on{border-color:var(--red);box-shadow:0 0 10px rgba(255,60,0,.12);}
+.mod[data-c="red"].on .mbar{background:var(--red);}.mod[data-c="red"].on .mstatus{color:var(--red);}
+.mod[data-c="red"].on .mtog{background:var(--red);box-shadow:0 0 7px var(--red);}
+.mod[data-c="yellow"].on{border-color:var(--yellow);}.mod[data-c="yellow"].on .mbar{background:var(--yellow);}
+.mod[data-c="yellow"].on .mstatus{color:var(--yellow);}.mod[data-c="yellow"].on .mtog{background:var(--yellow);}
+.mod[data-c="cyan"].on{border-color:var(--cyan);}.mod[data-c="cyan"].on .mbar{background:var(--cyan);}
+.mod[data-c="cyan"].on .mstatus{color:var(--cyan);}.mod[data-c="cyan"].on .mtog{background:var(--cyan);}
+.mod[data-c="purple"].on{border-color:var(--purple);}.mod[data-c="purple"].on .mbar{background:var(--purple);}
+.mod[data-c="purple"].on .mstatus{color:var(--purple);}.mod[data-c="purple"].on .mtog{background:var(--purple);}
+.mod[data-c="blue"].on{border-color:var(--blue);}.mod[data-c="blue"].on .mbar{background:var(--blue);}
+.mod[data-c="blue"].on .mstatus{color:var(--blue);}.mod[data-c="blue"].on .mtog{background:var(--blue);}
+.mod[data-c="orange"].on{border-color:var(--orange);}.mod[data-c="orange"].on .mbar{background:var(--orange);}
+.mod[data-c="orange"].on .mstatus{color:var(--orange);}.mod[data-c="orange"].on .mtog{background:var(--orange);}
+.mbar{height:3px;background:#1a3a1a;transition:background .3s;}
+.mbody{padding:9px 11px;flex:1;display:flex;flex-direction:column;gap:3px;}
+.mtop{display:flex;justify-content:space-between;align-items:center;}
+.mname{font-family:var(--display);font-size:10px;font-weight:700;color:var(--tdim);letter-spacing:2px;transition:color .2s;}
+.mstatus{font-size:9px;color:#334433;letter-spacing:1px;transition:color .3s;}
+.mdesc{font-size:9px;color:var(--tdim);line-height:1.5;flex:1;}
+.mbot{display:flex;justify-content:space-between;align-items:center;margin-top:5px;}
+.mkey{font-size:8px;color:#1a3a1a;}
+.mtog{width:36px;height:18px;background:#0f1f0f;border:1px solid #1a3a1a;border-radius:9px;position:relative;transition:background .3s;flex-shrink:0;}
+.mtog::after{content:'';position:absolute;top:2px;left:2px;width:12px;height:12px;background:#334433;border-radius:50%;transition:transform .3s;}
+
+/* Sliders */
+.srow{display:flex;align-items:center;gap:7px;margin-top:4px;}
+.srow label{font-size:8px;color:var(--tdim);letter-spacing:1px;white-space:nowrap;}
+input[type=range]{-webkit-appearance:none;flex:1;height:3px;background:#1a3a1a;border-radius:2px;outline:none;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 4px var(--green);cursor:pointer;}
+.sval{font-size:10px;color:var(--green);min-width:28px;text-align:right;}
+
+/* ── SEED TAB ── */
+.seed-header-box{border:1px solid var(--orange);background:#0d0800;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.seed-label{font-size:9px;color:#886600;letter-spacing:2px;margin-bottom:3px;}
+.seed-value{font-family:var(--display);font-size:16px;font-weight:900;color:var(--orange);text-shadow:0 0 10px #885500;letter-spacing:2px;word-break:break-all;}
+.seed-unknown{font-size:11px;color:var(--tdim);}
+.btn{font-family:var(--font);font-size:9px;letter-spacing:2px;padding:5px 10px;border:1px solid;background:transparent;cursor:pointer;transition:all .2s;}
+.btn-copy{color:var(--orange);border-color:var(--orange);}.btn-copy:hover{background:rgba(255,119,0,.1);}
+.btn-cb{color:var(--cyan);border-color:var(--cyan);margin-top:5px;}.btn-cb:hover{background:rgba(0,255,204,.1);}
+.btn-scan{color:var(--green);border-color:var(--green);}.btn-scan:hover{background:rgba(0,255,65,.1);}
+
+/* Structures panel */
+.struct-panel{border:1px solid #1a3a1a;background:var(--panel);flex:1;}
+.struct-top{padding:8px 12px;border-bottom:1px solid #0f2a0f;display:flex;align-items:center;justify-content:space-between;}
+.struct-title{font-family:var(--display);font-size:10px;color:var(--green);letter-spacing:2px;}
+.struct-list{padding:6px;display:flex;flex-direction:column;gap:3px;max-height:200px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--gdim) transparent;}
+.struct-row{display:flex;align-items:center;gap:8px;padding:5px 8px;border:1px solid #0f2a0f;background:#020a04;cursor:pointer;transition:border-color .15s;}
+.struct-row:hover{border-color:var(--gdim);background:#041006;}
+.struct-icon{font-size:13px;flex-shrink:0;width:20px;text-align:center;}
+.struct-info{flex:1;min-width:0;}
+.struct-name{font-size:10px;color:var(--text);letter-spacing:1px;}
+.struct-coords{font-size:9px;color:var(--tdim);}
+.struct-dist{font-family:var(--display);font-size:10px;font-weight:700;flex-shrink:0;text-align:right;}
+.struct-dir{font-size:9px;color:var(--tdim);min-width:22px;text-align:right;}
+.struct-empty{font-size:10px;color:var(--tdim);padding:12px;text-align:center;letter-spacing:1px;}
+
+/* Mini map */
+.map-panel{border:1px solid #1a3a1a;background:#010801;position:relative;}
+.map-title{font-family:var(--display);font-size:9px;color:var(--gdim);letter-spacing:2px;padding:6px 10px;border-bottom:1px solid #0f2a0f;}
+canvas#minimap{display:block;width:100%;image-rendering:pixelated;}
+
+/* Terminal */
+#term{border:1px solid #0f2a0f;background:#020a04;padding:7px 9px;height:72px;overflow-y:auto;flex-shrink:0;scrollbar-width:thin;scrollbar-color:var(--gdim) transparent;}
+#term::before{content:'// LOG';display:block;font-size:8px;color:var(--gdim);letter-spacing:2px;margin-bottom:3px;position:sticky;top:0;background:#020a04;}
+.ll{font-size:10px;line-height:1.6;color:var(--tdim);animation:lf .2s ease;}
+@keyframes lf{from{opacity:0;transform:translateX(-3px);}}
+.ll .ts{color:#1a3a1a;margin-right:5px;}
+.ll .ok{color:var(--green);}.ll .er{color:var(--red);}.ll .nf{color:var(--cyan);}.ll .wn{color:var(--yellow);}
+
+/* Footer */
+#foot{display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
+.ft{font-size:8px;color:var(--gdim);letter-spacing:2px;}
+
+/* Reconnect */
+#rco{display:none;position:fixed;inset:0;background:rgba(2,5,3,.92);z-index:1000;align-items:center;justify-content:center;flex-direction:column;gap:10px;}
+#rco.show{display:flex;}
+.rct{font-family:var(--display);font-size:16px;color:var(--red);letter-spacing:4px;animation:blink .6s step-end infinite;}
+.rcs{font-size:10px;color:var(--tdim);letter-spacing:2px;}
+
+/* Copied toast */
+#toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#001a08;border:1px solid var(--green);color:var(--green);font-size:10px;letter-spacing:2px;padding:6px 16px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:2000;}
+#toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<div id="rco">
+  <div class="rct">CONNECTION LOST</div>
+  <div class="rcs">Waiting for Minecraft...</div>
+  <div class="rcs" id="rcc">—</div>
+</div>
+<div id="toast">COPIED</div>
+
+<div id="app">
+
+  <!-- Header -->
+  <div id="hdr">
+    <div>
+      <div class="htitle">HACKMOD</div>
+      <div class="hsub">UTILITY FRAMEWORK v3.0</div>
+    </div>
+    <div style="text-align:center">
+      <div class="hsub" id="srv">SERVER: —</div>
+      <div class="hsub" style="margin-top:3px" id="biomed">BIOME: —</div>
+    </div>
+    <div style="text-align:right">
+      <div><span class="dot"></span><span class="badge off" id="cbadge">OFFLINE</span></div>
+      <div class="hsub" style="margin-top:3px" id="pingd">PING: —</div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div id="stats">
+    <div class="sb"><div class="sl">FPS</div><div class="sv" id="s-fps">—</div></div>
+    <div class="sb"><div class="sl">X</div><div class="sv" id="s-x">—</div></div>
+    <div class="sb"><div class="sl">Y</div><div class="sv" id="s-y">—</div></div>
+    <div class="sb"><div class="sl">Z</div><div class="sv" id="s-z">—</div></div>
+    <div class="sb"><div class="sl">FACING</div><div class="sv" id="s-f">—</div></div>
+    <div class="sb"><div class="sl">DIM</div><div class="sv" id="s-d">—</div></div>
+  </div>
+
+  <!-- Tabs -->
+  <div id="tabs">
+    <div class="tab active" onclick="showTab('esp',this)">ESP</div>
+    <div class="tab" onclick="showTab('visual',this)">VISUAL</div>
+    <div class="tab" onclick="showTab('hud',this)">HUD</div>
+    <div class="tab" onclick="showTab('qol',this)">QOL</div>
+    <div class="tab" onclick="showTab('seed',this)">🌱 SEED</div>
+  </div>
+
+  <!-- ── ESP ── -->
+  <div class="page active" id="tab-esp">
+    <div class="mod" id="m-chestEsp" data-f="chestEsp" data-c="green" onclick="tog(this)">
+      <div class="mbar"></div>
+      <div class="mbody">
+        <div class="mtop"><div class="mname">CHEST ESP</div><div class="mstatus" id="st-chestEsp">STANDBY</div></div>
+        <div class="mdesc">Highlights chests through walls. Normal, trapped &amp; ender chests supported.</div>
+        <div class="srow">
+          <label>RADIUS</label>
+          <input type="range" id="sl-radius" min="1" max="32" value="12" oninput="onSlider('chestEspRadius',this.value,'vr-radius','c')" onclick="event.stopPropagation()">
+          <span class="sval" id="vr-radius">12c</span>
+        </div>
+        <div class="mbot"><div class="mkey">// CHEST+ENDER</div><div class="mtog" id="tg-chestEsp"></div></div>
+      </div>
+    </div>
+    <div class="mod" id="m-playerEsp" data-f="playerEsp" data-c="red" onclick="tog(this)">
+      <div class="mbar"></div>
+      <div class="mbody">
+        <div class="mtop"><div class="mname">PLAYER ESP</div><div class="mstatus" id="st-playerEsp">STANDBY</div></div>
+        <div class="mdesc">Renders enemy player hitboxes through terrain with interpolated tracking.</div>
+        <div class="mbot"><div class="mkey">// MULTIPLAYER</div><div class="mtog" id="tg-playerEsp"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── VISUAL ── -->
+  <div class="page" id="tab-visual">
+    <div class="mod" id="m-fullbright" data-f="fullbright" data-c="yellow" onclick="tog(this)">
+      <div class="mbar"></div>
+      <div class="mbody">
+        <div class="mtop"><div class="mname">FULLBRIGHT</div><div class="mstatus" id="st-fullbright">STANDBY</div></div>
+        <div class="mdesc">Forces maximum gamma — caves and night are fully visible.</div>
+        <div class="mbot"><div class="mkey">// GAMMA OVERRIDE</div><div class="mtog" id="tg-fullbright"></div></div>
+      </div>
+    </div>
+    <div class="mod" id="m-zoomEnabled" data-f="zoomEnabled" data-c="cyan" onclick="tog(this)">
+      <div class="mbar"></div>
+      <div class="mbody">
+        <div class="mtop"><div class="mname">ZOOM</div><div class="mstatus" id="st-zoomEnabled">STANDBY</div></div>
+        <div class="mdesc">Hold <b style="color:#aaffaa">[C]</b> in-game → 10° sniper FOV. Mouse sensitivity auto-reduced.</div>
+        <div class="mbot"><div class="mkey">// HOLD C</div><div class="mtog" id="tg-zoomEnabled"></div></div>
+      </div>
+    </div>
+    <div class="mod" id="m-customFovEnabled" data-f="customFovEnabled" data-c="blue" onclick="tog(this)">
+      <div class="mbar"></div>
+      <div class="mbody">
+        <div class="mtop"><div class="mname">CUSTOM FOV</div><div class="mstatus" id="st-customFovEnabled">STANDBY</div></div>
+        <div class="mdesc">Override in-game FOV independently from Minecraft's own setting.</div>
+        <div class="srow">
+          <label>FOV</label>
+          <input type="range" id="sl-fov" min="30" max="120" value="70" oninput="onSlider('customFov',this.value,'vr-fov','°')" onclick="event.stopPropagation()">
+          <span class="sval" id="vr-fov">70°</span>
+        </div>
+        <div class="mbot"><div class="mkey">// 30°–120°</div><div class="mtog" id="tg-customFovEnabled"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── HUD ── -->
+  <div class="page" id="tab-hud">
+    <div class="mod" id="m-coordsHud" data-f="coordsHud" data-c="green" onclick="tog(this)">
+      <div class="mbar"></div><div class="mbody">
+        <div class="mtop"><div class="mname">COORDS HUD</div><div class="mstatus" id="st-coordsHud">STANDBY</div></div>
+        <div class="mdesc">XYZ + direction overlay in the top-left corner.</div>
+        <div class="mbot"><div class="mkey">// TOP-LEFT</div><div class="mtog" id="tg-coordsHud"></div></div>
+      </div>
+    </div>
+    <div class="mod" id="m-armorHud" data-f="armorHud" data-c="red" onclick="tog(this)">
+      <div class="mbar"></div><div class="mbody">
+        <div class="mtop"><div class="mname">ARMOR HUD</div><div class="mstatus" id="st-armorHud">STANDBY</div></div>
+        <div class="mdesc">Durability per armor piece above hotbar. Green → yellow → red.</div>
+        <div class="mbot"><div class="mkey">// DURABILITY</div><div class="mtog" id="tg-armorHud"></div></div>
+      </div>
+    </div>
+    <div class="mod" id="m-biomeHud" data-f="biomeHud" data-c="cyan" onclick="tog(this)">
+      <div class="mbar"></div><div class="mbody">
+        <div class="mtop"><div class="mname">BIOME HUD</div><div class="mstatus" id="st-biomeHud">STANDBY</div></div>
+        <div class="mdesc">Current biome name updated in real time.</div>
+        <div class="mbot"><div class="mkey">// BIOME NAME</div><div class="mtog" id="tg-biomeHud"></div></div>
+      </div>
+    </div>
+    <div class="mod" id="m-clockHud" data-f="clockHud" data-c="purple" onclick="tog(this)">
+      <div class="mbar"></div><div class="mbody">
+        <div class="mtop"><div class="mname">CLOCK HUD</div><div class="mstatus" id="st-clockHud">STANDBY</div></div>
+        <div class="mdesc">In-game MC time + real-world local time side by side.</div>
+        <div class="mbot"><div class="mkey">// MC + IRL TIME</div><div class="mtog" id="tg-clockHud"></div></div>
+      </div>
+    </div>
+    <div class="mod" id="m-armorAlert" data-f="armorAlert" data-c="red" onclick="tog(this)">
+      <div class="mbar"></div><div class="mbody">
+        <div class="mtop"><div class="mname">ARMOR ALERT</div><div class="mstatus" id="st-armorAlert">STANDBY</div></div>
+        <div class="mdesc">Flashes red warning when any armor piece drops below 15% durability.</div>
+        <div class="mbot"><div class="mkey">// &lt;15% WARNING</div><div class="mtog" id="tg-armorAlert"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── QOL ── -->
+  <div class="page" id="tab-qol">
+    <div class="mod" id="m-autoSprint" data-f="autoSprint" data-c="cyan" onclick="tog(this)">
+      <div class="mbar"></div><div class="mbody">
+        <div class="mtop"><div class="mname">AUTO SPRINT</div><div class="mstatus" id="st-autoSprint">STANDBY</div></div>
+        <div class="mdesc">Automatically sprints on every forward movement tick.</div>
+        <div class="mbot"><div class="mkey">// MOVEMENT</div><div class="mtog" id="tg-autoSprint"></div></div>
+      </div>
+    </div>
+    <div class="mod" id="m-noFall" data-f="noFall" data-c="green" onclick="tog(this)">
+      <div class="mbar"></div><div class="mbody">
+        <div class="mtop"><div class="mname">NO FALL</div><div class="mstatus" id="st-noFall">STANDBY</div></div>
+        <div class="mdesc">Resets fall distance every tick — zero fall damage.</div>
+        <div class="mbot"><div class="mkey">// GRAVITY BYPASS</div><div class="mtog" id="tg-noFall"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SEED TAB ── -->
+  <div class="page seed-layout" id="tab-seed">
+
+    <!-- Seed display + controls -->
+    <div style="display:flex;gap:6px;align-items:stretch">
+      <div class="seed-header-box" style="flex:1">
+        <div style="flex:1;min-width:0">
+          <div class="seed-label">WORLD SEED</div>
+          <div class="seed-value" id="seed-display">—</div>
+          <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn btn-copy" onclick="copySeed()">⎘ COPY</button>
+            <button class="btn btn-cb" onclick="openChunkbase()">🌐 CHUNKBASE</button>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;justify-content:space-between">
+        <div class="mod" id="m-seedTracker" data-f="seedTracker" data-c="orange" onclick="tog(this)" style="flex:1;min-width:120px">
+          <div class="mbar"></div>
+          <div class="mbody" style="gap:4px">
+            <div class="mtop"><div class="mname" style="font-size:9px">SEED TRACKER</div><div class="mstatus" id="st-seedTracker">OFF</div></div>
+            <div class="mdesc">Reads world seed &amp; scans for nearby structures automatically.</div>
+            <div class="mbot"><div class="mkey">// SOLO ONLY</div><div class="mtog" id="tg-seedTracker"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scan radius -->
+    <div style="border:1px solid #1a3a1a;background:var(--panel);padding:8px 12px;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:9px;color:var(--tdim);letter-spacing:2px;white-space:nowrap">SCAN RADIUS</span>
+      <input type="range" id="sl-scanrad" min="10" max="200" value="100"
+        oninput="onSlider('structureScanRadius',this.value,'vr-scanrad','c')">
+      <span class="sval" id="vr-scanrad">100c</span>
+      <button class="btn btn-scan" onclick="forceScan()" style="white-space:nowrap;margin-left:4px">⟳ SCAN NOW</button>
+    </div>
+
+    <!-- Structure list -->
+    <div class="struct-panel">
+      <div class="struct-top">
+        <div class="struct-title">NEARBY STRUCTURES</div>
+        <div style="font-size:9px;color:var(--tdim)" id="struct-count">0 found</div>
+      </div>
+      <div class="struct-list" id="struct-list">
+        <div class="struct-empty">Enable Seed Tracker to scan for structures</div>
+      </div>
+    </div>
+
+    <!-- Mini map -->
+    <div class="map-panel">
+      <div class="map-title">STRUCTURE MAP // click structure to center</div>
+      <canvas id="minimap" width="400" height="180"></canvas>
+    </div>
+
+  </div>
+
+  <!-- Terminal -->
+  <div id="term"></div>
+
+  <!-- Footer -->
+  <div id="foot">
+    <div class="ft">HACKMOD v3.0 // CLIENT-SIDE</div>
+    <div class="ft" id="actcount">MODULES: 0 ACTIVE</div>
+    <div class="ft">:7331/:7332</div>
+  </div>
+</div>
+
+<script>
+// ── WebSocket ─────────────────────────────────────────────────────────────────
+const WS_URL = 'ws://localhost:7332';
+let ws, attempts = 0;
+
+function connect() {
+  ws = new WebSocket(WS_URL);
+  ws.onopen  = () => { attempts=0; setOnline(true); log('Connected to Minecraft','ok'); document.getElementById('rco').classList.remove('show'); };
+  ws.onclose = () => { setOnline(false); log('Disconnected — retrying...','er'); sched(); };
+  ws.onerror = () => ws.close();
+  ws.onmessage = e => { try{ handle(JSON.parse(e.data)); }catch{} };
+}
+function sched() {
+  attempts++;
+  const s = Math.min(5,attempts);
+  if (attempts>3) { document.getElementById('rco').classList.add('show'); document.getElementById('rcc').textContent=`Attempt #${attempts} — retry in ${s}s`; }
+  setTimeout(connect, s*1000);
+}
+function send(o) { if(ws&&ws.readyState===1) ws.send(JSON.stringify(o)); }
+
+// ── Features ──────────────────────────────────────────────────────────────────
+const FEATS = ['chestEsp','playerEsp','fullbright','zoomEnabled','customFovEnabled',
+               'coordsHud','armorHud','biomeHud','clockHud','armorAlert',
+               'autoSprint','noFall','seedTracker'];
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let lastState = null;
+
+function handle(s) {
+  if (s.type !== 'state') return;
+  lastState = s;
+
+  // Stats
+  const fpsEl = document.getElementById('s-fps');
+  fpsEl.textContent = s.fps;
+  fpsEl.className = 'sv'+(s.fps<30?' alert':s.fps<60?' warn':'');
+  document.getElementById('s-x').textContent = s.x.toFixed(1);
+  document.getElementById('s-y').textContent = s.y.toFixed(1);
+  document.getElementById('s-z').textContent = s.z.toFixed(1);
+  document.getElementById('s-f').textContent = s.facing;
+  document.getElementById('s-d').textContent = s.dim.toUpperCase();
+  document.getElementById('srv').textContent  = 'SERVER: '+s.server;
+  document.getElementById('biomed').textContent = 'BIOME: '+s.biome.toUpperCase();
+  document.getElementById('pingd').textContent  = 'PING: '+s.ping+'ms';
+
+  // Modules
+  let active = 0;
+  FEATS.forEach(f => { if(s[f]) active++; setMod(f,s[f]); });
+  document.getElementById('actcount').textContent = `MODULES: ${active} ACTIVE`;
+
+  // Sliders
+  syncSlider('sl-radius', s.chestEspRadius, 'vr-radius', 'c');
+  syncSlider('sl-fov',    s.customFov,      'vr-fov',    '°');
+  syncSlider('sl-scanrad',s.structureScanRadius,'vr-scanrad','c');
+
+  // Seed
+  const seedEl = document.getElementById('seed-display');
+  if (s.seed && s.seed !== 'unknown') {
+    seedEl.textContent = s.seed;
+    seedEl.style.color = 'var(--orange)';
+  } else {
+    seedEl.innerHTML = '<span class="seed-unknown">Not available (multiplayer)</span>';
+  }
+
+  // Structures
+  if (Array.isArray(s.structures)) updateStructures(s.structures, {x:s.x, z:s.z});
+}
+
+function setMod(f, on) {
+  const m=document.getElementById('m-'+f), st=document.getElementById('st-'+f);
+  if(!m||!st) return;
+  const was=m.classList.contains('on');
+  m.classList.toggle('on',on);
+  st.textContent = on?'ACTIVE':'STANDBY';
+  if(on&&!was) log(f.replace(/([A-Z])/g,' $1').trim().toUpperCase()+' enabled','ok');
+  else if(!on&&was) log(f.replace(/([A-Z])/g,' $1').trim().toUpperCase()+' disabled','wn');
+}
+function setOnline(v) {
+  const b=document.getElementById('cbadge');
+  b.textContent=v?'ONLINE':'OFFLINE'; b.className='badge '+(v?'on':'off');
+}
+
+// ── Interactions ──────────────────────────────────────────────────────────────
+function tog(el) { send({type:'toggle',feature:el.dataset.f}); }
+
+let debouncers={};
+function onSlider(feat,val,dispId,sfx) {
+  document.getElementById(dispId).textContent=val+sfx;
+  clearTimeout(debouncers[feat]);
+  debouncers[feat]=setTimeout(()=>send({type:'set',feature:feat,value:parseInt(val)}),250);
+}
+function syncSlider(id,val,dispId,sfx) {
+  const el=document.getElementById(id);
+  if(el&&!el.matches(':active')){el.value=val;document.getElementById(dispId).textContent=val+sfx;}
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+function showTab(name,el) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  el.classList.add('active');
+}
+
+// ── Seed helpers ──────────────────────────────────────────────────────────────
+function copySeed() {
+  const v=document.getElementById('seed-display').textContent;
+  if(v&&v!=='—'&&!v.includes('Not')) {
+    navigator.clipboard.writeText(v).then(()=>toast('COPIED'));
+  }
+}
+function openChunkbase() {
+  const v=document.getElementById('seed-display').textContent;
+  const seed=v&&v!=='—'&&!v.includes('Not')?v:'';
+  const dim=lastState?lastState.dim:'overworld';
+  const mapType=dim.includes('nether')?'nether':dim.includes('end')?'end':'overworld';
+  window.open(`https://www.chunkbase.com/apps/seed-map#${seed}`,'_blank');
+}
+function forceScan() {
+  send({type:'toggle',feature:'seedTracker'});
+  setTimeout(()=>send({type:'toggle',feature:'seedTracker'}),100);
+  log('Forced structure rescan','nf');
+}
+function toast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),1500);
+}
+
+// ── Structure icons ───────────────────────────────────────────────────────────
+const STRUCT_ICONS = {
+  'Village':'🏘️','Desert Temple':'🏜️','Jungle Temple':'🌿','Igloo':'🧊',
+  'Witch Hut':'🧙','Shipwreck':'⛵','Ocean Ruins':'🐚','Stronghold':'🏰',
+  'Mineshaft':'⛏️','Ruined Portal':'🌀','Nether Fossil':'🦴',
+  'Bastion Remnant':'🔥','Nether Fortress':'🏯'
+};
+const DIST_COLORS = [
+  [500,'#00ff41'],[1000,'#88ff00'],[2000,'#ffcc00'],[4000,'#ff8800'],['∞','#ff3c00']
+];
+function distColor(d) {
+  for(const [lim,c] of DIST_COLORS) if(lim==='∞'||d<=lim) return c;
+  return '#ff3c00';
+}
+
+function updateStructures(structs, player) {
+  const list=document.getElementById('struct-list');
+  const count=document.getElementById('struct-count');
+
+  if(!structs||structs.length===0) {
+    list.innerHTML='<div class="struct-empty">No structures found — try increasing scan radius</div>';
+    count.textContent='0 found';
+    drawMap([],player);
+    return;
+  }
+
+  count.textContent=structs.length+' found';
+  list.innerHTML='';
+  structs.forEach(s=>{
+    const row=document.createElement('div');
+    row.className='struct-row';
+    row.title=`Click to copy coordinates`;
+    const icon=STRUCT_ICONS[s.name]||'📍';
+    const dc=distColor(s.dist);
+    const distStr=s.dist>=1000?(s.dist/1000).toFixed(1)+'km':s.dist+'m';
+    row.innerHTML=`
+      <div class="struct-icon">${icon}</div>
+      <div class="struct-info">
+        <div class="struct-name">${s.name}</div>
+        <div class="struct-coords">X: ${s.x}  Z: ${s.z}</div>
+      </div>
+      <div class="struct-dir">${s.dir}</div>
+      <div class="struct-dist" style="color:${dc}">${distStr}</div>`;
+    row.onclick=()=>{
+      navigator.clipboard.writeText(`${s.x} ~ ${s.z}`);
+      toast('COORDS COPIED');
+    };
+    list.appendChild(row);
+  });
+
+  drawMap(structs, player);
+}
+
+// ── Mini map ──────────────────────────────────────────────────────────────────
+function drawMap(structs, player) {
+  const canvas=document.getElementById('minimap');
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width, H=canvas.height;
+
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#010801';
+  ctx.fillRect(0,0,W,H);
+
+  // Grid
+  ctx.strokeStyle='#0a1f0a';
+  ctx.lineWidth=1;
+  for(let x=0;x<W;x+=20){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=20){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+  if(!structs||structs.length===0||!player) {
+    ctx.fillStyle='#334433';ctx.font='11px monospace';
+    ctx.fillText('No structures to display',W/2-80,H/2);
+    return;
+  }
+
+  // Determine bounds
+  const allX=[player.x,...structs.map(s=>s.x)];
+  const allZ=[player.z,...structs.map(s=>s.z)];
+  const minX=Math.min(...allX), maxX=Math.max(...allX);
+  const minZ=Math.min(...allZ), maxZ=Math.max(...allZ);
+  const pad=60;
+  const rangeX=Math.max(maxX-minX,500), rangeZ=Math.max(maxZ-minZ,500);
+
+  function toScreen(wx,wz) {
+    return [
+      pad + (wx-minX+rangeX*.05)/(rangeX*1.1)*(W-pad*2),
+      pad + (wz-minZ+rangeZ*.05)/(rangeZ*1.1)*(H-pad*2)
+    ];
+  }
+
+  // Lines from player to structures
+  const [px,pz]=toScreen(player.x,player.z);
+  structs.forEach(s=>{
+    const [sx,sz]=toScreen(s.x,s.z);
+    ctx.strokeStyle='rgba(0,255,65,0.08)';
+    ctx.lineWidth=1;
+    ctx.setLineDash([3,4]);
+    ctx.beginPath();ctx.moveTo(px,pz);ctx.lineTo(sx,sz);ctx.stroke();
+    ctx.setLineDash([]);
+  });
+
+  // Structures
+  structs.forEach(s=>{
+    const [sx,sz]=toScreen(s.x,s.z);
+    const icon=STRUCT_ICONS[s.name]||'📍';
+    const dc=distColor(s.dist);
+
+    // Glow ring
+    ctx.strokeStyle=dc+'55';
+    ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(sx,sz,10,0,Math.PI*2);ctx.stroke();
+
+    // Icon
+    ctx.font='13px serif';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(icon,sx,sz);
+
+    // Name label
+    ctx.font='8px monospace';
+    ctx.fillStyle=dc;
+    ctx.textAlign='center';ctx.textBaseline='top';
+    ctx.fillText(s.name,sx,sz+10);
+  });
+
+  // Player marker
+  ctx.fillStyle='#00ff41';
+  ctx.strokeStyle='#00ff41';
+  ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(px,pz,5,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='rgba(0,255,65,0.4)';
+  ctx.lineWidth=1;
+  ctx.beginPath();ctx.arc(px,pz,9,0,Math.PI*2);ctx.stroke();
+
+  // Player label
+  ctx.font='8px monospace';ctx.fillStyle='#00ff41';
+  ctx.textAlign='center';ctx.textBaseline='top';
+  ctx.fillText('YOU',px,pz+11);
+}
+
+// ── Log ───────────────────────────────────────────────────────────────────────
+function log(msg,cls='') {
+  const t=document.getElementById('term');
+  const d=document.createElement('div'); d.className='ll';
+  const ts=new Date().toTimeString().slice(0,8);
+  d.innerHTML=`<span class="ts">[${ts}]</span><span class="${cls}">${msg}</span>`;
+  t.appendChild(d);
+  while(t.children.length>52) t.removeChild(t.children[1]);
+  t.scrollTop=t.scrollHeight;
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+log('HackMod v3.0 loaded — Seed Tracker ready','nf');
+log('Connecting to ws://localhost:7332...','nf');
+document.addEventListener('keydown',e=>{if(e.key==='Escape')e.preventDefault();});
+connect();
+</script>
+</body>
+</html>

@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HACKMOD // SYS</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+:root {
+  --green:#00ff41;--gdim:#007a20;--gdark:#003a10;
+  --bg:#020d05;--panel:#05130a;--border:#00cc33;
+  --red:#ff3c00;--yellow:#ffcc00;--cyan:#00ffcc;--purple:#9900ff;--blue:#0088ff;
+  --text:#ccffcc;--tdim:#557755;
+  --font:'Share Tech Mono',monospace;--display:'Orbitron',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-family:var(--font);overflow:hidden;cursor:crosshair;}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.07) 2px,rgba(0,0,0,.07) 4px);pointer-events:none;z-index:9999;}
+body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.65) 100%);pointer-events:none;z-index:9998;}
+
+/* ── Layout ── */
+#app{display:flex;flex-direction:column;height:100vh;padding:8px;gap:6px;}
+
+/* ── Header ── */
+#hdr{border:1px solid var(--border);background:linear-gradient(135deg,#001a08,#030d05);padding:8px 14px;display:flex;align-items:center;justify-content:space-between;position:relative;overflow:hidden;flex-shrink:0;}
+#hdr::before{content:'';position:absolute;top:0;left:-100%;width:50%;height:100%;background:linear-gradient(90deg,transparent,rgba(0,255,65,.04),transparent);animation:sweep 5s linear infinite;}
+@keyframes sweep{to{left:150%;}}
+.htitle{font-family:var(--display);font-size:14px;font-weight:900;color:var(--green);letter-spacing:4px;text-shadow:0 0 10px var(--green);}
+.hsub{font-size:9px;color:var(--gdim);letter-spacing:2px;margin-top:2px;}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:blink 1s step-end infinite;display:inline-block;margin-right:5px;}
+@keyframes blink{50%{opacity:0;}}
+.badge{font-size:9px;padding:2px 7px;border:1px solid;letter-spacing:1px;}
+.badge.on{color:var(--green);border-color:var(--green);background:rgba(0,255,65,.08);}
+.badge.off{color:var(--red);border-color:var(--red);background:rgba(255,60,0,.08);animation:blink .5s step-end infinite;}
+
+/* ── Stats row ── */
+#stats{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;flex-shrink:0;}
+.sb{border:1px solid #1a3a1a;background:var(--panel);padding:5px 8px;position:relative;overflow:hidden;}
+.sb::before{content:'';position:absolute;top:0;left:0;width:2px;height:100%;background:var(--gdim);}
+.sl{font-size:8px;color:var(--tdim);letter-spacing:2px;margin-bottom:1px;}
+.sv{font-size:13px;color:var(--green);font-family:var(--display);font-weight:700;text-shadow:0 0 6px var(--gdim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sv.warn{color:var(--yellow);text-shadow:0 0 6px #886600;}
+.sv.alert{color:var(--red);text-shadow:0 0 6px #881800;}
+
+/* ── Tabs ── */
+#tabs{display:flex;gap:4px;flex-shrink:0;}
+.tab{font-family:var(--display);font-size:9px;letter-spacing:2px;padding:5px 12px;border:1px solid #1a3a1a;background:var(--panel);color:var(--tdim);cursor:pointer;transition:all .2s;}
+.tab:hover{border-color:var(--gdim);color:var(--text);}
+.tab.active{border-color:var(--green);color:var(--green);background:#001a08;box-shadow:0 0 8px rgba(0,255,65,.15);}
+
+/* ── Module grid ── */
+.page{display:none;flex:1;min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--gdim) transparent;}
+.page.active{display:grid;grid-template-columns:1fr 1fr;gap:6px;align-content:start;}
+.page.active.single{grid-template-columns:1fr;}
+
+/* ── Module card ── */
+.mod{border:1px solid #0f2a0f;background:var(--panel);cursor:pointer;position:relative;overflow:hidden;transition:border-color .2s,background .2s;display:flex;flex-direction:column;}
+.mod:hover{background:#071208;}
+.mod.on{border-color:var(--green);background:#001a09;box-shadow:0 0 10px rgba(0,255,65,.1),inset 0 0 10px rgba(0,255,65,.03);}
+.mod.on .mbar{background:var(--green);box-shadow:0 0 5px var(--green);}
+.mod.on .mname{color:#fff;}
+.mod.on .mstatus{color:var(--green);}
+.mod.on .mtog{background:var(--green);box-shadow:0 0 7px var(--green);}
+.mod.on .mtog::after{transform:translateX(18px);}
+/* accent overrides */
+.mod[data-c="red"].on{border-color:var(--red);box-shadow:0 0 10px rgba(255,60,0,.12);}
+.mod[data-c="red"].on .mbar{background:var(--red);box-shadow:0 0 5px var(--red);}
+.mod[data-c="red"].on .mstatus{color:var(--red);}
+.mod[data-c="red"].on .mtog{background:var(--red);box-shadow:0 0 7px var(--red);}
+.mod[data-c="yellow"].on{border-color:var(--yellow);}
+.mod[data-c="yellow"].on .mbar{background:var(--yellow);}
+.mod[data-c="yellow"].on .mstatus{color:var(--yellow);}
+.mod[data-c="yellow"].on .mtog{background:var(--yellow);}
+.mod[data-c="cyan"].on{border-color:var(--cyan);}
+.mod[data-c="cyan"].on .mbar{background:var(--cyan);}
+.mod[data-c="cyan"].on .mstatus{color:var(--cyan);}
+.mod[data-c="cyan"].on .mtog{background:var(--cyan);}
+.mod[data-c="purple"].on{border-color:var(--purple);}
+.mod[data-c="purple"].on .mbar{background:var(--purple);}
+.mod[data-c="purple"].on .mstatus{color:var(--purple);}
+.mod[data-c="purple"].on .mtog{background:var(--purple);}
+.mod[data-c="blue"].on{border-color:var(--blue);}
+.mod[data-c="blue"].on .mbar{background:var(--blue);}
+.mod[data-c="blue"].on .mstatus{color:var(--blue);}
+.mod[data-c="blue"].on .mtog{background:var(--blue);}
+
+.mbar{height:3px;background:#1a3a1a;transition:background .3s;}
+.mbody{padding:9px 11px;flex:1;display:flex;flex-direction:column;gap:3px;}
+.mtop{display:flex;justify-content:space-between;align-items:center;}
+.mname{font-family:var(--display);font-size:10px;font-weight:700;color:var(--tdim);letter-spacing:2px;transition:color .2s;}
+.mstatus{font-size:9px;color:#334433;letter-spacing:1px;transition:color .3s;}
+.mdesc{font-size:9px;color:var(--tdim);line-height:1.5;flex:1;}
+.mbot{display:flex;justify-content:space-between;align-items:center;margin-top:5px;}
+.mkey{font-size:8px;color:#1a3a1a;}
+.mtog{width:36px;height:18px;background:#0f1f0f;border:1px solid #1a3a1a;border-radius:9px;position:relative;transition:background .3s;flex-shrink:0;}
+.mtog::after{content:'';position:absolute;top:2px;left:2px;width:12px;height:12px;background:#334433;border-radius:50%;transition:transform .3s,background .3s;}
+
+/* ── Sliders ── */
+.srow{display:flex;align-items:center;gap:7px;margin-top:4px;}
+.srow label{font-size:8px;color:var(--tdim);letter-spacing:1px;white-space:nowrap;}
+input[type=range]{-webkit-appearance:none;flex:1;height:3px;background:#1a3a1a;border-radius:2px;outline:none;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 4px var(--green);cursor:pointer;}
+.sval{font-size:10px;color:var(--green);min-width:24px;text-align:right;}
+
+/* ── Terminal ── */
+#term{border:1px solid #0f2a0f;background:#020a04;padding:7px 9px;height:80px;overflow-y:auto;flex-shrink:0;scrollbar-width:thin;scrollbar-color:var(--gdim) transparent;}
+#term::before{content:'// LOG';display:block;font-size:8px;color:var(--gdim);letter-spacing:2px;margin-bottom:3px;position:sticky;top:0;background:#020a04;}
+.ll{font-size:10px;line-height:1.6;color:var(--tdim);animation:lf .2s ease;}
+@keyframes lf{from{opacity:0;transform:translateX(-3px);}}
+.ll .ts{color:#1a3a1a;margin-right:5px;}
+.ll .ok{color:var(--green);} .ll .er{color:var(--red);} .ll .nf{color:var(--cyan);} .ll .wn{color:var(--yellow);}
+
+/* ── Footer ── */
+#foot{display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
+.ft{font-size:8px;color:var(--gdim);letter-spacing:2px;}
+
+/* ── Reconnect overlay ── */
+#rco{display:none;position:fixed;inset:0;background:rgba(2,5,3,.92);z-index:1000;align-items:center;justify-content:center;flex-direction:column;gap:10px;}
+#rco.show{display:flex;}
+.rct{font-family:var(--display);font-size:16px;color:var(--red);letter-spacing:4px;animation:blink .6s step-end infinite;}
+.rcs{font-size:10px;color:var(--tdim);letter-spacing:2px;}
+</style>
+</head>
+<body>
+
+<div id="rco">
+  <div class="rct">CONNECTION LOST</div>
+  <div class="rcs">Waiting for Minecraft...</div>
+  <div class="rcs" id="rcc">—</div>
+</div>
+
+<div id="app">
+
+  <!-- Header -->
+  <div id="hdr">
+    <div>
+      <div class="htitle">HACKMOD</div>
+      <div class="hsub">UTILITY FRAMEWORK v2.0</div>
+    </div>
+    <div style="text-align:center">
+      <div class="hsub" id="srv">SERVER: —</div>
+      <div class="hsub" style="margin-top:3px" id="biomed">BIOME: —</div>
+    </div>
+    <div style="text-align:right">
+      <div><span class="dot"></span><span class="badge off" id="cbadge">OFFLINE</span></div>
+      <div class="hsub" style="margin-top:3px" id="pingd">PING: —</div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div id="stats">
+    <div class="sb"><div class="sl">FPS</div><div class="sv" id="s-fps">—</div></div>
+    <div class="sb"><div class="sl">X</div><div class="sv" id="s-x">—</div></div>
+    <div class="sb"><div class="sl">Y</div><div class="sv" id="s-y">—</div></div>
+    <div class="sb"><div class="sl">Z</div><div class="sv" id="s-z">—</div></div>
+    <div class="sb"><div class="sl">FACING</div><div class="sv" id="s-f">—</div></div>
+    <div class="sb"><div class="sl">DIM</div><div class="sv" id="s-d">—</div></div>
+  </div>
+
+  <!-- Tabs -->
+  <div id="tabs">
+    <div class="tab active" onclick="showTab('esp')">ESP</div>
+    <div class="tab" onclick="showTab('visual')">VISUAL</div>
+    <div class="tab" onclick="showTab('hud')">HUD</div>
+    <div class="tab" onclick="showTab('qol')">QOL</div>
+  </div>
+
+  <!-- ── ESP Tab ── -->
+  <div class="page active" id="tab-esp">
+
+    <div class="mod" id="m-chestEsp" data-f="chestEsp" data-c="green" onclick="tog(this)">
+      <div class="mbar"></div>
+      <div class="mbody">
+        <div class="mtop"><div class="mname">CHEST ESP</div><div class="mstatus" id="st-chestEsp">STANDBY</div></div>
+        <div class="mdesc">Highlights chests through walls. Supports normal, trapped &amp; ender chests.</div>
+        <div class="srow">
+          <label>RADIUS</label>
+          <input type="range" id="sl-radius" min="1" max="32" value="12"
+            oninput="onSlider('chestEspRadius',this.value,'sl-radius-v','c')"
+            onclick="event.stopPropagation()">
+          <span class="sval" id="sl-radius-v">12c</span>
+        </div>
+        <div class="mbot"><div class="mkey">// CHEST + ENDER</div><div class="mtog" id="tg-chestEsp"></div></div>
+      </div>
+    </div>
+
+    <div class="mod" id="m-playerEsp" data-f="playerEsp" data-c="red" onclick="tog(this)">
+      <div class="mbar"></div>
+      <div class="mbody">
+        <div class="mtop"><div class="mname">PLAYER ESP</div><div class="mstatus" id="st-playerEsp">STANDBY</div></div>
+        <div class="mdesc">Renders enemy player hitboxes through terrain with interpolated movement tracking.</div>
+        <div class="mbot"><div class="mkey">// MULTIPLAYER</div><div class="mtog" id="tg-playerEsp"></div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Visual Tab ── -->
+  <div class="page" id="tab-visual">
+
+    <div class="mod" id="m-fullbright" data-f="fullbright" data-c="yellow" onclick="tog(this)">
+      <div class="mbar"></div>
+      <div class="mbody">
+        <div class="mtop"><div class="mname">FULLBRIGHT</div><div class="mstatus" id="st-fullbright">STANDBY</div></div>
+        <div class="mdesc">Forces maximum gamma — caves, the Nether and night are fully visible.</div>
+        <div class="mbot"><div class="mkey">// GAMMA OVERRIDE</div><div class="mtog" id="tg-fullbright"></div></div>
+      </div>
+    </div>
+
+    <div class="mod" id="m-zoomEnabled" data-f="zoomEnabled" data-c="cyan" onclick="tog(this)">
+      <div class="mbar"></div>
+      <div class="mbody">
+        <div class="mtop"><div class="mname">ZOOM</div><div class="mstatus" id="st-zoomEnabled">STANDBY</div></div>
+        <div class="mdesc">Hold <b style="color:#aaffaa">[C]</b> in-game for a 10° sniper FOV. Mouse sensitivity auto-reduced while zoomed.</div>
+        <div class="mbot"><div class="mkey">// HOLD C IN-GAME</div><div class="mtog" id="tg-zoomEnabled"></div></div>
+      </div>
+    </div>
+
+    <div class="mod" id="m-customFovEnabled" data-f="customFovEnabled" data-c="blue" onclick="tog(this)">
+      <div class="mbar"></div>
+      <div class="mbody">
+        <div class="mtop"><div class="mname">CUSTOM FOV</div><div class="mstatus" id="st-customFovEnabled">STANDBY</div></div>
+        <div class="mdesc">Override the in-game FOV with a precise value independent of Minecraft's FOV setting.</div>
+        <div class="srow">
+          <label>FOV</label>
+          <input type="range" id="sl-fov" min="30" max="120" value="70"
+            oninput="onSlider('customFov',this.value,'sl-fov-v','°')"
+            onclick="event.stopPropagation()">
+          <span class="sval" id="sl-fov-v">70°</span>
+        </div>
+        <div class="mbot"><div class="mkey">// 30°–120°</div><div class="mtog" id="tg-customFovEnabled"></div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── HUD Tab ── -->
+  <div class="page" id="tab-hud">
+
+    <div class="mod" id="m-coordsHud" data-f="coordsHud" data-c="green" onclick="tog(this)">
+      <div class="mbar"></div>
+      <div class="mbody">
+        <div class="mtop"><div class="mname">COORDS HUD</div><div class="mstatus" id="st-coordsHud">STANDBY</div></div>
+        <div class="mdesc">Displays XYZ coordinates and cardinal direction in the top-left corner of the screen.</div>
+        <div class="mbot"><div class="mkey">// TOP-LEFT OVERLAY</div><div class="mtog" id="tg-coordsHud"></div></div>
+      </div>
+    </div>
+
+    <div class="mod" id="m-armorHud" data-f="armorHud" data-c="red" onclick="tog(this)">
+      <div class="mbar"></div>
+      <div class="mbody">
+        <div class="mtop"><div class="mname">ARMOR HUD</div><div class="mstatus" id="st-armorHud">STANDBY</div></div>
+        <div class="mdesc">Shows durability for each armor piece above the hotbar. Color-coded: green → yellow → red.</div>
+        <div class="mbot"><div class="mkey">// DURABILITY DISPLAY</div><div class="mtog" id="tg-armorHud"></div></div>
+      </div>
+    </div>
+
+    <div class="mod" id="m-biomeHud" data-f="biomeHud" data-c="cyan" onclick="tog(this)">
+      <div class="mbar"></div>
+      <div class="mbody">
+        <div class="mtop"><div class="mname">BIOME HUD</div><div class="mstatus" id="st-biomeHud">STANDBY</div></div>
+        <div class="mdesc">Shows the current biome name on-screen. Updates in real time as you move through the world.</div>
+        <div class="mbot"><div class="mkey">// BIOME NAME</div><div class="mtog" id="tg-biomeHud"></div></div>
+      </div>
+    </div>
+
+    <div class="mod" id="m-clockHud" data-f="clockHud" data-c="purple" onclick="tog(this)">
+      <div class="mbar"></div>
+      <div class="mbody">
+        <div class="mtop"><div class="mname">CLOCK HUD</div><div class="mstatus" id="st-clockHud">STANDBY</div></div>
+        <div class="mdesc">Shows both in-game Minecraft time (day/night cycle) and your real-world local time.</div>
+        <div class="mbot"><div class="mkey">// MC TIME + IRL</div><div class="mtog" id="tg-clockHud"></div></div>
+      </div>
+    </div>
+
+    <div class="mod" id="m-armorAlert" data-f="armorAlert" data-c="red" onclick="tog(this)">
+      <div class="mbar"></div>
+      <div class="mbody">
+        <div class="mtop"><div class="mname">ARMOR ALERT</div><div class="mstatus" id="st-armorAlert">STANDBY</div></div>
+        <div class="mdesc">Flashes a red warning on screen when any armor piece drops below 15% durability.</div>
+        <div class="mbot"><div class="mkey">// &lt;15% WARNING</div><div class="mtog" id="tg-armorAlert"></div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── QoL Tab ── -->
+  <div class="page" id="tab-qol">
+
+    <div class="mod" id="m-autoSprint" data-f="autoSprint" data-c="cyan" onclick="tog(this)">
+      <div class="mbar"></div>
+      <div class="mbody">
+        <div class="mtop"><div class="mname">AUTO SPRINT</div><div class="mstatus" id="st-autoSprint">STANDBY</div></div>
+        <div class="mdesc">Automatically engages sprint on every forward movement tick. No extra input needed.</div>
+        <div class="mbot"><div class="mkey">// MOVEMENT</div><div class="mtog" id="tg-autoSprint"></div></div>
+      </div>
+    </div>
+
+    <div class="mod" id="m-noFall" data-f="noFall" data-c="green" onclick="tog(this)">
+      <div class="mbar"></div>
+      <div class="mbody">
+        <div class="mtop"><div class="mname">NO FALL</div><div class="mstatus" id="st-noFall">STANDBY</div></div>
+        <div class="mdesc">Resets fall distance every tick — zero fall damage regardless of drop height.</div>
+        <div class="mbot"><div class="mkey">// GRAVITY BYPASS</div><div class="mtog" id="tg-noFall"></div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Terminal log -->
+  <div id="term"></div>
+
+  <!-- Footer -->
+  <div id="foot">
+    <div class="ft">HACKMOD v2.0 // CLIENT-SIDE</div>
+    <div class="ft" id="actcount">MODULES: 0 ACTIVE</div>
+    <div class="ft">:7331 / :7332</div>
+  </div>
+
+</div>
+
+<script>
+// ── WebSocket ─────────────────────────────────────────────────────────────────
+const WS = 'ws://localhost:7332';
+let ws, attempts = 0;
+
+function connect() {
+  ws = new WebSocket(WS);
+  ws.onopen  = () => { attempts=0; setOnline(true); log('Connected to Minecraft','ok'); document.getElementById('rco').classList.remove('show'); };
+  ws.onclose = () => { setOnline(false); log('Disconnected — retrying...','er'); reconnect(); };
+  ws.onerror = () => ws.close();
+  ws.onmessage = e => { try{ handle(JSON.parse(e.data)); }catch{} };
+}
+function reconnect() {
+  attempts++;
+  const s = Math.min(5, attempts);
+  if (attempts > 3) { document.getElementById('rco').classList.add('show'); document.getElementById('rcc').textContent=`Attempt #${attempts} — retry in ${s}s`; }
+  setTimeout(connect, s*1000);
+}
+function send(o) { if(ws && ws.readyState===1) ws.send(JSON.stringify(o)); }
+
+// ── All feature keys ──────────────────────────────────────────────────────────
+const FEATS = ['chestEsp','playerEsp','fullbright','zoomEnabled','customFovEnabled',
+               'coordsHud','armorHud','biomeHud','clockHud','armorAlert',
+               'autoSprint','noFall'];
+
+// ── State handler ─────────────────────────────────────────────────────────────
+function handle(s) {
+  if (s.type !== 'state') return;
+
+  // Stats
+  const fps = s.fps;
+  const fe = document.getElementById('s-fps');
+  fe.textContent = fps;
+  fe.className = 'sv' + (fps<30?' alert':fps<60?' warn':'');
+  document.getElementById('s-x').textContent = s.x.toFixed(1);
+  document.getElementById('s-y').textContent = s.y.toFixed(1);
+  document.getElementById('s-z').textContent = s.z.toFixed(1);
+  document.getElementById('s-f').textContent = s.facing;
+  document.getElementById('s-d').textContent = s.dim.toUpperCase();
+  document.getElementById('srv').textContent = 'SERVER: ' + s.server;
+  document.getElementById('biomed').textContent = 'BIOME: ' + s.biome.toUpperCase();
+  document.getElementById('pingd').textContent = 'PING: ' + s.ping + 'ms';
+
+  // Modules
+  let active = 0;
+  FEATS.forEach(f => { if(s[f]) active++; setMod(f, s[f]); });
+  document.getElementById('actcount').textContent = `MODULES: ${active} ACTIVE`;
+
+  // Sync sliders (only if not being dragged)
+  syncSlider('sl-radius', s.chestEspRadius, 'sl-radius-v', 'c');
+  syncSlider('sl-fov',    s.customFov,      'sl-fov-v',    '°');
+}
+
+function setMod(f, on) {
+  const m = document.getElementById('m-'+f);
+  const st = document.getElementById('st-'+f);
+  if (!m || !st) return;
+  const was = m.classList.contains('on');
+  m.classList.toggle('on', on);
+  st.textContent = on ? 'ACTIVE' : 'STANDBY';
+  if (on && !was) log(f.replace(/([A-Z])/g,' $1').toUpperCase().trim()+' enabled','ok');
+  else if (!on && was) log(f.replace(/([A-Z])/g,' $1').toUpperCase().trim()+' disabled','wn');
+}
+
+function setOnline(v) {
+  const b = document.getElementById('cbadge');
+  b.textContent = v ? 'ONLINE' : 'OFFLINE';
+  b.className = 'badge ' + (v?'on':'off');
+}
+
+// ── Interactions ──────────────────────────────────────────────────────────────
+function tog(el) { send({type:'toggle', feature: el.dataset.f}); }
+
+let debounces = {};
+function onSlider(feat, val, dispId, suffix) {
+  document.getElementById(dispId).textContent = val + suffix;
+  document.getElementById('sl-'+feat.replace('customFov','fov').replace('chestEspRadius','radius')).dataset.dragging='1';
+  clearTimeout(debounces[feat]);
+  debounces[feat] = setTimeout(() => {
+    send({type:'set', feature:feat, value:parseInt(val)});
+    document.getElementById('sl-'+feat.replace('customFov','fov').replace('chestEspRadius','radius')).dataset.dragging='0';
+  }, 250);
+}
+
+function syncSlider(id, val, dispId, suffix) {
+  const el = document.getElementById(id);
+  if (el && el.dataset.dragging !== '1') {
+    el.value = val;
+    document.getElementById(dispId).textContent = val + suffix;
+  }
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+function showTab(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ── Log ───────────────────────────────────────────────────────────────────────
+function log(msg, cls='') {
+  const t = document.getElementById('term');
+  const d = document.createElement('div');
+  d.className='ll';
+  const ts = new Date().toTimeString().slice(0,8);
+  d.innerHTML=`<span class="ts">[${ts}]</span><span class="${cls}">${msg}</span>`;
+  t.appendChild(d);
+  while(t.children.length>52) t.removeChild(t.children[1]);
+  t.scrollTop=t.scrollHeight;
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+log('HackMod v2.0 interface loaded','nf');
+log('Connecting to ws://localhost:7332...','nf');
+document.addEventListener('keydown', e => { if(e.key==='Escape') e.preventDefault(); });
+connect();
+</script>
+</body>
+</html>
